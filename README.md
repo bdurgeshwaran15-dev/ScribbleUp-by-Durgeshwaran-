@@ -1,2 +1,1155 @@
-# ScribbleUp-by-Durgeshwaran-
-Scribble Up+ is a lightweight visual sketch workspace built using HTML, CSS, JavaScript, and Fabric.js. Designed for architects and creative professionals, it enables multi-layer sketching, image annotation, zooming, panning, and responsive interaction across desktop, tablet, and mobile devices.
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8" />
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
+
+<title>
+  Scribble Up+ by Durgeshwaran Balakrishnan
+</title>
+
+<!-- FABRIC JS -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  background:#f3f3f3;
+}
+
+/* HEADER */
+
+header{
+  height:70px;
+  background:#111;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+}
+
+.branding{
+  display:flex;
+  flex-direction:column;
+}
+
+header h1{
+  font-size:24px;
+  line-height:1;
+}
+
+header small{
+  color:#bbb;
+  font-size:12px;
+  margin-top:4px;
+  line-height:1.4;
+}
+
+/* TOOLBAR */
+
+.toolbar{
+  background:white;
+  padding:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  border-bottom:1px solid #ddd;
+}
+
+button{
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.black{
+  background:black;
+  color:white;
+}
+
+.red{
+  background:red;
+  color:white;
+}
+
+.blue{
+  background:blue;
+  color:white;
+}
+
+.green{
+  background:green;
+  color:white;
+}
+
+.gray{
+  background:#ddd;
+}
+
+.danger{
+  background:#ff4d4d;
+  color:white;
+}
+
+.layer-btn{
+  background:#444;
+  color:white;
+}
+
+.layer-btn.active{
+  background:#0084ff;
+}
+
+/* CANVAS */
+
+#canvas-container{
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+
+canvas{
+  border:none;
+}
+
+/* LOGIN */
+
+.login-screen{
+  position:fixed;
+  inset:0;
+  background:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.login-box{
+  width:320px;
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+.login-box input{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+.login-box button{
+  background:black;
+  color:white;
+}
+
+/* LAYERS */
+
+#layersPanel{
+  position:absolute;
+  top:10px;
+  right:10px;
+  width:200px;
+  background:rgba(255,255,255,0.95);
+  border-radius:12px;
+  padding:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  z-index:999;
+  max-height:80vh;
+  overflow:auto;
+}
+
+.layer-item{
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:10px;
+  margin-top:10px;
+}
+
+.layer-item button{
+  width:100%;
+  margin-top:6px;
+}
+
+.layer-item input{
+  width:100%;
+}
+
+/* RIGHT CLICK */
+
+#contextMenu{
+  position:absolute;
+  display:none;
+  background:white;
+  border-radius:12px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.2);
+  overflow:hidden;
+  z-index:99999;
+}
+
+#contextMenu button{
+  width:180px;
+  padding:12px;
+  border:none;
+  background:white;
+  text-align:left;
+}
+
+#contextMenu button:hover{
+  background:#f0f0f0;
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+  .toolbar{
+    justify-content:center;
+  }
+
+  #layersPanel{
+    width:160px;
+  }
+
+  header h1{
+    font-size:18px;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- LOGIN -->
+
+<div
+  class="login-screen"
+  id="loginScreen"
+>
+
+  <div class="login-box">
+
+    <h2>Scribble Up+</h2>
+
+    <input
+      type="text"
+      id="userid"
+      placeholder="User ID"
+    />
+
+    <input
+      type="password"
+      id="password"
+      placeholder="Password"
+    />
+
+    <button onclick="login()">
+      Login
+    </button>
+
+  </div>
+
+</div>
+
+<!-- HEADER -->
+
+<header>
+
+  <div class="branding">
+
+    <h1>
+      Scribble Up+
+    </h1>
+
+    <small>
+
+      by Durgeshwaran Balakrishnan
+    </small>
+
+  </div>
+
+  <div id="userDisplay"></div>
+
+</header>
+
+<!-- TOOLBAR -->
+
+<div class="toolbar">
+
+  <button
+    class="black"
+    onclick="setColor('black')"
+  >
+    Black
+  </button>
+
+  <button
+    class="red"
+    onclick="setColor('red')"
+  >
+    Red
+  </button>
+
+  <button
+    class="blue"
+    onclick="setColor('blue')"
+  >
+    Blue
+  </button>
+
+  <button
+    class="green"
+    onclick="setColor('green')"
+  >
+    Green
+  </button>
+
+  <button
+    class="gray"
+    onclick="toggleEraser()"
+  >
+    Eraser
+  </button>
+
+  <label>
+    Brush
+  </label>
+
+  <input
+    type="range"
+    min="1"
+    max="30"
+    value="3"
+    onchange="setBrushSize(this.value)"
+  />
+
+  <button onclick="addLayer()">
+    Add Layer
+  </button>
+
+  <input
+    type="file"
+    accept="image/*"
+    multiple
+    onchange="uploadImage(event)"
+  />
+
+  <button onclick="saveCanvas()">
+    Save
+  </button>
+
+  <button
+    class="danger"
+    onclick="resetCanvas()"
+  >
+    Reset
+  </button>
+
+</div>
+
+<!-- CANVAS -->
+
+<div id="canvas-container">
+
+  <canvas id="canvas"></canvas>
+
+  <!-- RIGHT CLICK MENU -->
+
+  <div id="contextMenu">
+
+    <button onclick="deleteSelectedObject()">
+      Delete Image
+    </button>
+
+    <button onclick="enableScaling()">
+      Enable Resize
+    </button>
+
+  </div>
+
+  <!-- LAYERS -->
+
+  <div id="layersPanel">
+
+    <strong>
+      Layers
+    </strong>
+
+    <div id="layersList"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+/* LOGIN */
+
+const validUserID =
+  "designer.com";
+
+const validPassword =
+  "Designer@01";
+
+function login(){
+
+  const userid =
+    document.getElementById(
+      'userid'
+    ).value;
+
+  const password =
+    document.getElementById(
+      'password'
+    ).value;
+
+  if(
+
+    userid === validUserID &&
+
+    password === validPassword
+
+  ){
+
+    document.getElementById(
+      'loginScreen'
+    ).style.display = 'none';
+
+    document.getElementById(
+      'userDisplay'
+    ).innerText = userid;
+
+    localStorage.setItem(
+      'scribbleLoggedIn',
+      'true'
+    );
+
+  }
+
+  else{
+
+    alert(
+      'Invalid User ID or Password'
+    );
+
+  }
+
+}
+
+window.onload = ()=>{
+
+  const loggedIn =
+    localStorage.getItem(
+      'scribbleLoggedIn'
+    );
+
+  if(loggedIn === 'true'){
+
+    document.getElementById(
+      'loginScreen'
+    ).style.display = 'none';
+
+    document.getElementById(
+      'userDisplay'
+    ).innerText = validUserID;
+
+  }
+
+};
+
+/* FABRIC */
+
+const canvas =
+  new fabric.Canvas(
+    'canvas',
+    {
+      isDrawingMode:true,
+      preserveObjectStacking:true
+    }
+  );
+
+/* RESIZE */
+
+function resizeCanvas(){
+
+  canvas.setWidth(
+    window.innerWidth
+  );
+
+  canvas.setHeight(
+    window.innerHeight - 130
+  );
+
+}
+
+resizeCanvas();
+
+window.addEventListener(
+  'resize',
+  resizeCanvas
+);
+
+/* BRUSH */
+
+canvas.freeDrawingBrush.width = 3;
+
+canvas.freeDrawingBrush.color =
+  'black';
+
+function setColor(color){
+
+  canvas.isDrawingMode = true;
+
+  canvas.freeDrawingBrush.color =
+    color;
+
+}
+
+function setBrushSize(size){
+
+  canvas.freeDrawingBrush.width =
+    parseInt(size);
+
+}
+
+function toggleEraser(){
+
+  canvas.isDrawingMode = true;
+
+  canvas.freeDrawingBrush.color =
+    'white';
+
+}
+
+/* LAYERS */
+
+let layers = [];
+
+let currentLayer = 0;
+
+let selectedObject = null;
+
+const contextMenu =
+  document.getElementById(
+    'contextMenu'
+  );
+
+function addLayer(){
+
+  const layer = {
+
+    id:Date.now(),
+
+    locked:false,
+
+    opacity:1,
+
+    objects:[]
+
+  };
+
+  layers.push(layer);
+
+  currentLayer =
+    layers.length - 1;
+
+  renderLayers();
+
+}
+
+addLayer();
+
+function renderLayers(){
+
+  const list =
+    document.getElementById(
+      'layersList'
+    );
+
+  list.innerHTML = '';
+
+  layers.forEach((layer,index)=>{
+
+    const div =
+      document.createElement(
+        'div'
+      );
+
+    div.className =
+      'layer-item';
+
+    div.innerHTML = `
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+        "
+      >
+
+        <span>
+          Layer ${index + 1}
+        </span>
+
+        <button
+          onclick="deleteLayer(${index})"
+          style="
+            background:red;
+            color:white;
+            padding:4px 8px;
+            border:none;
+            border-radius:6px;
+            width:auto;
+          "
+        >
+          X
+        </button>
+
+      </div>
+
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.1"
+        value="${layer.opacity}"
+      />
+
+      <button class="layer-btn">
+        Select
+      </button>
+
+      <button>
+        ${
+          layer.locked
+          ? 'Unlock'
+          : 'Lock'
+        }
+      </button>
+
+    `;
+
+    const buttons =
+      div.querySelectorAll(
+        'button'
+      );
+
+    const range =
+      div.querySelector(
+        'input'
+      );
+
+    buttons[1].onclick = ()=>{
+
+      currentLayer = index;
+
+      renderLayers();
+
+    };
+
+    buttons[2].onclick = ()=>{
+
+      layer.locked =
+        !layer.locked;
+
+      updateLayerLock();
+
+      renderLayers();
+
+    };
+
+    range.oninput = (e)=>{
+
+      layer.opacity =
+        e.target.value;
+
+      layer.objects.forEach(obj=>{
+
+        obj.set(
+          'opacity',
+          layer.opacity
+        );
+
+      });
+
+      canvas.renderAll();
+
+    };
+
+    if(currentLayer === index){
+
+      buttons[1].classList.add(
+        'active'
+      );
+
+    }
+
+    list.appendChild(div);
+
+  });
+
+}
+
+function deleteLayer(index){
+
+  if(layers.length === 1){
+
+    alert(
+      'At least one layer required'
+    );
+
+    return;
+
+  }
+
+  const layer =
+    layers[index];
+
+  layer.objects.forEach(obj=>{
+
+    canvas.remove(obj);
+
+  });
+
+  layers.splice(index,1);
+
+  currentLayer = 0;
+
+  renderLayers();
+
+  canvas.renderAll();
+
+}
+
+function updateLayerLock(){
+
+  layers.forEach(layer=>{
+
+    layer.objects.forEach(obj=>{
+
+      obj.selectable =
+        !layer.locked;
+
+      obj.evented =
+        !layer.locked;
+
+    });
+
+  });
+
+  canvas.renderAll();
+
+}
+
+/* TRACK OBJECTS */
+
+canvas.on(
+  'object:added',
+  function(e){
+
+    const obj = e.target;
+
+    if(!obj.customAdded){
+
+      obj.layerIndex =
+        currentLayer;
+
+      if(
+        !layers[currentLayer]
+        .objects.includes(obj)
+      ){
+
+        layers[currentLayer]
+        .objects.push(obj);
+
+      }
+
+    }
+
+  }
+);
+
+/* IMAGE UPLOAD */
+
+function uploadImage(event){
+
+  const files =
+    event.target.files;
+
+  Array.from(files).forEach(file=>{
+
+    const reader =
+      new FileReader();
+
+    reader.onload = function(f){
+
+      fabric.Image.fromURL(
+        f.target.result,
+        function(img){
+
+          img.set({
+
+            left:100,
+
+            top:100,
+
+            cornerSize:18,
+
+            transparentCorners:false,
+
+            borderColor:'#0084ff',
+
+            cornerColor:'#0084ff',
+
+            cornerStyle:'circle',
+
+            padding:8
+
+          });
+
+          img.scaleToWidth(250);
+
+          img.layerIndex =
+            currentLayer;
+
+          img.setControlsVisibility({
+
+            mt:true,
+            mb:true,
+            ml:true,
+            mr:true,
+            tl:true,
+            tr:true,
+            bl:true,
+            br:true,
+            mtr:true
+
+          });
+
+          layers[currentLayer]
+          .objects.push(img);
+
+          canvas.add(img);
+
+          canvas.setActiveObject(img);
+
+          canvas.isDrawingMode = false;
+
+          canvas.renderAll();
+
+        }
+      );
+
+    };
+
+    reader.readAsDataURL(file);
+
+  });
+
+}
+
+/* DRAWING MODE SWITCH */
+
+canvas.on(
+  'selection:created',
+  function(){
+
+    canvas.isDrawingMode = false;
+
+  }
+);
+
+canvas.on(
+  'selection:updated',
+  function(){
+
+    canvas.isDrawingMode = false;
+
+  }
+);
+
+canvas.on(
+  'selection:cleared',
+  function(){
+
+    canvas.isDrawingMode = true;
+
+  }
+);
+
+/* RIGHT CLICK */
+
+canvas.upperCanvasEl.addEventListener(
+  'contextmenu',
+  function(e){
+
+    e.preventDefault();
+
+    const target =
+      canvas.findTarget(e);
+
+    if(target){
+
+      selectedObject = target;
+
+      contextMenu.style.display =
+        'block';
+
+      contextMenu.style.left =
+        e.clientX + 'px';
+
+      contextMenu.style.top =
+        e.clientY + 'px';
+
+    }
+
+  }
+);
+
+window.addEventListener(
+  'click',
+  ()=>{
+
+    contextMenu.style.display =
+      'none';
+
+  }
+);
+
+/* DELETE OBJECT */
+
+function deleteSelectedObject(){
+
+  if(selectedObject){
+
+    const layerIndex =
+      selectedObject.layerIndex;
+
+    layers[layerIndex].objects =
+      layers[layerIndex]
+      .objects
+      .filter(
+        obj => obj !== selectedObject
+      );
+
+    canvas.remove(selectedObject);
+
+    selectedObject = null;
+
+  }
+
+}
+
+/* ENABLE SCALE */
+
+function enableScaling(){
+
+  if(selectedObject){
+
+    selectedObject.set({
+
+      lockScalingX:false,
+
+      lockScalingY:false,
+
+      hasControls:true,
+
+      selectable:true
+
+    });
+
+    canvas.setActiveObject(
+      selectedObject
+    );
+
+    canvas.renderAll();
+
+  }
+
+}
+
+/* SAVE */
+
+function saveCanvas(){
+
+  const link =
+    document.createElement('a');
+
+  link.download =
+    'scribble-up.png';
+
+  link.href =
+    canvas.toDataURL({
+      format:'png'
+    });
+
+  link.click();
+
+}
+
+/* RESET */
+
+function resetCanvas(){
+
+  const confirmReset =
+    confirm(
+      'Clear entire canvas?'
+    );
+
+  if(!confirmReset) return;
+
+  canvas.clear();
+
+  layers = [];
+
+  addLayer();
+
+  canvas.isDrawingMode = true;
+
+}
+
+/* ZOOM */
+
+canvas.on(
+  'mouse:wheel',
+  function(opt){
+
+    const delta =
+      opt.e.deltaY;
+
+    let zoom =
+      canvas.getZoom();
+
+    zoom *= 0.999 ** delta;
+
+    if(zoom > 5)
+      zoom = 5;
+
+    if(zoom < 0.2)
+      zoom = 0.2;
+
+    canvas.zoomToPoint(
+      {
+        x:opt.e.offsetX,
+        y:opt.e.offsetY
+      },
+      zoom
+    );
+
+    opt.e.preventDefault();
+
+    opt.e.stopPropagation();
+
+  }
+);
+
+/* PAN */
+
+let isDragging = false;
+
+let lastPosX;
+
+let lastPosY;
+
+canvas.on(
+  'mouse:down',
+  function(opt){
+
+    const evt = opt.e;
+
+    if(evt.altKey){
+
+      isDragging = true;
+
+      canvas.selection = false;
+
+      lastPosX =
+        evt.clientX;
+
+      lastPosY =
+        evt.clientY;
+
+    }
+
+  }
+);
+
+canvas.on(
+  'mouse:move',
+  function(opt){
+
+    if(isDragging){
+
+      const e = opt.e;
+
+      const vpt =
+        canvas.viewportTransform;
+
+      vpt[4] +=
+        e.clientX - lastPosX;
+
+      vpt[5] +=
+        e.clientY - lastPosY;
+
+      canvas.requestRenderAll();
+
+      lastPosX =
+        e.clientX;
+
+      lastPosY =
+        e.clientY;
+
+    }
+
+  }
+);
+
+canvas.on(
+  'mouse:up',
+  function(){
+
+    isDragging = false;
+
+    canvas.selection = true;
+
+  }
+);
+
+/* MOBILE */
+
+fabric.Object.prototype.transparentCorners = false;
+
+canvas.allowTouchScrolling = true;
+
+</script>
+
+</body>
+</html>
